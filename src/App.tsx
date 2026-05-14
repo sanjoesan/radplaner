@@ -103,20 +103,21 @@ function evalSlot({ hours, crit, sunriseH, sunsetH, startH, durH }: {
   const isBlocked = blocked.size > 0;
   let score = 100;
   if (!isBlocked) {
-    if (avgTemp < 15) score -= (15 - avgTemp) * 2.5;
-    if (avgTemp > 25) score -= (avgTemp - 25) * 2.5;
-    if (maxWind > 15) score -= (maxWind - 15) * 1.5;
-    if (maxRain > 10) score -= (maxRain - 10) * 0.7;
-    if (maxUV > 5) score -= (maxUV - 5) * 3;
+    score -= (maxWind / crit.maxWind) * 35;
+    if (crit.noRain) score -= (maxRain / crit.maxRainProb) * 30;
+    score -= Math.max(0, 1 - (avgTemp - crit.minTemp) / 10) * 20;
+    score -= Math.max(0, 1 - (crit.maxTemp - avgTemp) / 5) * 15;
+    const uvMid = crit.maxUV * 0.5;
+    if (maxUV > uvMid) score -= ((maxUV - uvMid) / uvMid) * 15;
     score = Math.max(0, Math.min(100, score));
   } else score = 0;
   const level: SlotResult["level"] = isBlocked ? "red" : score >= 70 ? "green" : score >= 40 ? "yellow" : "orange";
   const notes: string[] = [];
   if (!isBlocked) {
-    if (maxRain <= 10) notes.push("Kaum Regen");
-    if (avgTemp >= 15 && avgTemp <= 22) notes.push("Ideale Temp.");
-    if (maxWind <= 15) notes.push("Wenig Wind");
-    if (maxUV <= 3) notes.push("Geringer UV");
+    if (maxRain <= crit.maxRainProb * 0.3) notes.push("Kaum Regen");
+    if (avgTemp >= crit.minTemp + 3 && avgTemp <= 24) notes.push("Ideale Temp.");
+    if (maxWind <= crit.maxWind * 0.4) notes.push("Wenig Wind");
+    if (maxUV <= crit.maxUV * 0.4) notes.push("Geringer UV");
   }
   return { level, score: Math.round(score), issues: [...blocked], warnings: [...warns], notes, stats: { avgTemp, maxWind, maxRain, maxUV } };
 }
