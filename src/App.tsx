@@ -213,14 +213,15 @@ export default function App() {
   const [loc, setLoc] = useState<Location | null>(null);
   const [locQ, setLocQ] = useState("");
   const [sugg, setSugg] = useState<Suggestion[]>([]);
-  const [dur, setDur] = useState(2);
-  const [crit, setCrit] = useState<Criteria>({ noRain: true, maxRainProb: 30, minTemp: 8, maxTemp: 36, maxWind: 35, maxUV: 9, allowDark: false });
+  const [dur, setDur] = useState(1.5);
+  const [crit, setCrit] = useState<Criteria>({ noRain: true, maxRainProb: 20, minTemp: 15, maxTemp: 36, maxWind: 35, maxUV: 9, allowDark: false });
   const [days, setDays] = useState<Record<string, DayConfig>>(() => {
     const obj: Record<string, DayConfig> = {};
     for (let i = 0; i < 7; i++) {
       const d = new Date(); d.setDate(d.getDate() + i);
       const k = d.toISOString().split("T")[0];
-      obj[k] = { enabled: true, from: "07:00", to: "19:00" };
+      const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+      obj[k] = { enabled: true, from: isWeekend ? "07:00" : "16:00", to: isWeekend ? "19:00" : "20:00" };
     }
     return obj;
   });
