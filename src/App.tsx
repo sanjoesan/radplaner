@@ -4,26 +4,86 @@ const GEO_URL = "https://geocoding-api.open-meteo.com/v1/search";
 const WEATHER_URL = "https://api.open-meteo.com/v1/forecast";
 const DURATION_OPTS = [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4];
 
-function parseHM(s) {
+interface HourData {
+  temp: number;
+  rain: number;
+  wind: number;
+  uv: number;
+}
+
+interface Criteria {
+  noRain: boolean;
+  maxRainProb: number;
+  minTemp: number;
+  maxTemp: number;
+  maxWind: number;
+  maxUV: number;
+  allowDark: boolean;
+}
+
+interface DayConfig {
+  enabled: boolean;
+  from: string;
+  to: string;
+}
+
+interface Location {
+  name: string;
+  lat: number;
+  lon: number;
+}
+
+interface Suggestion {
+  name: string;
+  admin1: string;
+  country: string;
+  lat: number;
+  lon: number;
+}
+
+interface SlotResult {
+  start: number;
+  level: "green" | "yellow" | "orange" | "red";
+  score: number;
+  issues: string[];
+  warnings: string[];
+  notes: string[];
+  stats: { avgTemp: number; maxWind: number; maxRain: number; maxUV: number };
+}
+
+interface DayResult {
+  date: string;
+  sun: { sunrise: string; sunset: string };
+  slots: SlotResult[];
+}
+
+function parseHM(s: string): number {
   const t = s.includes("T") ? s.split("T")[1] : s;
   const [h, m] = t.substring(0, 5).split(":").map(Number);
   return h + m / 60;
 }
-function fmtHour(dh) {
+function fmtHour(dh: number): string {
   const h = Math.floor(dh), m = Math.round((dh - h) * 60);
-  return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}`;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
-function fmtDate(ds) {
-  return new Date(ds + "T12:00").toLocaleDateString("de-AT", { weekday:"long", day:"numeric", month:"long" });
+function fmtDate(ds: string): string {
+  return new Date(ds + "T12:00").toLocaleDateString("de-AT", { weekday: "long", day: "numeric", month: "long" });
 }
-function fmtSun(iso) {
+function fmtSun(iso: string | undefined): string {
   if (!iso) return "--:--";
   const t = iso.includes("T") ? iso.split("T")[1] : iso;
   return t.substring(0, 5);
 }
 
-function evalSlot({ hours, crit, sunriseH, sunsetH, startH, durH }) {
-  const blocked = new Set(), warns = new Set();
+function evalSlot({ hours, crit, sunriseH, sunsetH, startH, durH }: {
+  hours: HourData[];
+  crit: Criteria;
+  sunriseH: number | null;
+  sunsetH: number | null;
+  startH: number;
+  durH: number;
+}): Omit<SlotResult, "start"> {
+  const blocked = new Set<string>(), warns = new Set<string>();
   if (!crit.allowDark && sunriseH !== null && sunsetH !== null) {
     if (startH < sunriseH - 0.05) blocked.add(`Vor Sonnenaufgang (${fmtHour(sunriseH)})`);
     if (startH + durH > sunsetH + 0.05) blocked.add(`Nach Sonnenuntergang (${fmtHour(sunsetH)})`);
@@ -47,8 +107,8 @@ function evalSlot({ hours, crit, sunriseH, sunsetH, startH, durH }) {
     if (maxUV > 5) score -= (maxUV - 5) * 3;
     score = Math.max(0, Math.min(100, score));
   } else score = 0;
-  const level = isBlocked ? "red" : score >= 70 ? "green" : score >= 40 ? "yellow" : "orange";
-  const notes = [];
+  const level: SlotResult["level"] = isBlocked ? "red" : score >= 70 ? "green" : score >= 40 ? "yellow" : "orange";
+  const notes: string[] = [];
   if (!isBlocked) {
     if (maxRain <= 10) notes.push("Kaum Regen");
     if (avgTemp >= 15 && avgTemp <= 22) notes.push("Ideale Temp.");
@@ -58,13 +118,33 @@ function evalSlot({ hours, crit, sunriseH, sunsetH, startH, durH }) {
   return { level, score: Math.round(score), issues: [...blocked], warnings: [...warns], notes, stats: { avgTemp, maxWind, maxRain, maxUV } };
 }
 
-function computeResults(data, days, durH, crit) {
+interface WeatherData {
+  hourly: {
+    time: string[];
+    temperature_2m: number[];
+    precipitation_probability: number[];
+    windspeed_10m: number[];
+    uv_index: number[];
+  };
+  daily: {
+    time: string[];
+    sunrise: string[];
+    sunset: string[];
+  };
+}
+
+function computeResults(data: WeatherData, days: Record<string, DayConfig>, durH: number, crit: Criteria): DayResult[] {
   const { hourly, daily } = data;
-  const byHour = {};
+  const byHour: Record<string, HourData> = {};
   hourly.time.forEach((t, i) => {
-    byHour[t] = { temp: hourly.temperature_2m[i] ?? 15, rain: hourly.precipitation_probability[i] ?? 0, wind: hourly.windspeed_10m[i] ?? 0, uv: hourly.uv_index[i] ?? 0 };
+    byHour[t] = {
+      temp: hourly.temperature_2m[i] ?? 15,
+      rain: hourly.precipitation_probability[i] ?? 0,
+      wind: hourly.windspeed_10m[i] ?? 0,
+      uv: hourly.uv_index[i] ?? 0,
+    };
   });
-  const sunMap = {};
+  const sunMap: Record<string, { sunrise?: string; sunset?: string }> = {};
   (daily.time || []).forEach((d, i) => { sunMap[d] = { sunrise: daily.sunrise?.[i], sunset: daily.sunset?.[i] }; });
 
   return Object.entries(days).filter(([, c]) => c.enabled).map(([dayKey, cfg]) => {
@@ -72,11 +152,11 @@ function computeResults(data, days, durH, crit) {
     const sunriseH = sun.sunrise ? parseHM(sun.sunrise) : null;
     const sunsetH = sun.sunset ? parseHM(sun.sunset) : null;
     const fromH = parseHM(cfg.from), toH = parseHM(cfg.to);
-    const allSlots = [];
+    const allSlots: SlotResult[] = [];
     for (let sH = fromH; sH + durH <= toH + 0.01; sH += 0.5) {
-      const hours = [];
+      const hours: HourData[] = [];
       for (let dh = 0; dh < Math.ceil(durH); dh++) {
-        const tk = `${dayKey}T${String(Math.floor(sH) + dh).padStart(2,"0")}:00`;
+        const tk = `${dayKey}T${String(Math.floor(sH) + dh).padStart(2, "0")}:00`;
         if (byHour[tk]) hours.push(byHour[tk]);
       }
       if (!hours.length) continue;
@@ -84,7 +164,7 @@ function computeResults(data, days, durH, crit) {
       allSlots.push({ start: sH, ...ev });
     }
     allSlots.sort((a, b) => b.score - a.score);
-    const kept = [];
+    const kept: SlotResult[] = [];
     for (const s of allSlots) {
       if (!kept.some(ks => Math.abs(ks.start - s.start) < 1)) { kept.push(s); if (kept.length >= 3) break; }
     }
@@ -93,13 +173,13 @@ function computeResults(data, days, durH, crit) {
 }
 
 const LVLS = {
-  green:  { bg:"bg-green-50",  border:"border-green-400",  dot:"bg-green-500",  badge:"bg-green-100 text-green-700",   label:"Ideal" },
-  yellow: { bg:"bg-yellow-50", border:"border-yellow-400", dot:"bg-yellow-400", badge:"bg-yellow-100 text-yellow-700", label:"Akzeptabel" },
-  orange: { bg:"bg-orange-50", border:"border-orange-400", dot:"bg-orange-400", badge:"bg-orange-100 text-orange-700", label:"Grenzwertig" },
-  red:    { bg:"bg-red-50",    border:"border-red-300",    dot:"bg-red-400",    badge:"bg-red-100 text-red-700",       label:"Nicht empfohlen" },
+  green:  { bg: "bg-green-50",  border: "border-green-400",  dot: "bg-green-500",  badge: "bg-green-100 text-green-700",   label: "Ideal" },
+  yellow: { bg: "bg-yellow-50", border: "border-yellow-400", dot: "bg-yellow-400", badge: "bg-yellow-100 text-yellow-700", label: "Akzeptabel" },
+  orange: { bg: "bg-orange-50", border: "border-orange-400", dot: "bg-orange-400", badge: "bg-orange-100 text-orange-700", label: "Grenzwertig" },
+  red:    { bg: "bg-red-50",    border: "border-red-300",    dot: "bg-red-400",    badge: "bg-red-100 text-red-700",       label: "Nicht empfohlen" },
 };
 
-function Toggle({ on, onChange }) {
+function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
   return (
     <button onClick={() => onChange(!on)} className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${on ? "bg-blue-500" : "bg-gray-300"}`}>
       <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-all duration-200 ${on ? "left-6" : "left-1"}`} />
@@ -107,7 +187,9 @@ function Toggle({ on, onChange }) {
   );
 }
 
-function Slider({ label, min, max, step, value, onChange }) {
+function Slider({ label, min, max, step, value, onChange }: {
+  label: string; min: number; max: number; step: number; value: number; onChange: (v: number) => void;
+}) {
   return (
     <div className="space-y-1">
       <div className="flex justify-between">
@@ -119,22 +201,22 @@ function Slider({ label, min, max, step, value, onChange }) {
   );
 }
 
-function Card({ children, className = "" }) {
+function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return <div className={`bg-white rounded-2xl shadow-sm border border-gray-100 p-4 ${className}`}>{children}</div>;
 }
 
-function SectionTitle({ children }) {
+function SectionTitle({ children }: { children: React.ReactNode }) {
   return <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">{children}</h2>;
 }
 
 export default function App() {
-  const [loc, setLoc] = useState(null);
+  const [loc, setLoc] = useState<Location | null>(null);
   const [locQ, setLocQ] = useState("");
-  const [sugg, setSugg] = useState([]);
+  const [sugg, setSugg] = useState<Suggestion[]>([]);
   const [dur, setDur] = useState(2);
-  const [crit, setCrit] = useState({ noRain: true, maxRainProb: 30, minTemp: 8, maxTemp: 36, maxWind: 35, maxUV: 9, allowDark: false });
-  const [days, setDays] = useState(() => {
-    const obj = {};
+  const [crit, setCrit] = useState<Criteria>({ noRain: true, maxRainProb: 30, minTemp: 8, maxTemp: 36, maxWind: 35, maxUV: 9, allowDark: false });
+  const [days, setDays] = useState<Record<string, DayConfig>>(() => {
+    const obj: Record<string, DayConfig> = {};
     for (let i = 0; i < 7; i++) {
       const d = new Date(); d.setDate(d.getDate() + i);
       const k = d.toISOString().split("T")[0];
@@ -142,10 +224,9 @@ export default function App() {
     }
     return obj;
   });
-  const [results, setResults] = useState(null);
+  const [results, setResults] = useState<DayResult[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
-
   const [geoLoading, setGeoLoading] = useState(false);
 
   useEffect(() => {
@@ -155,7 +236,7 @@ export default function App() {
       try {
         const r = await fetch(`${GEO_URL}?name=${encodeURIComponent(locQ)}&count=5&language=de&format=json`);
         const d = await r.json();
-        const mapped = (d.results || []).map(s => ({
+        const mapped: Suggestion[] = (d.results || []).map((s: { name: string; admin1?: string; country?: string; latitude: number; longitude: number }) => ({
           name: s.name,
           admin1: s.admin1 || "",
           country: s.country || "",
@@ -171,13 +252,13 @@ export default function App() {
 
   const compute = async () => {
     if (!loc) { setErr("Bitte einen Ort auswählen"); return; }
-    const lat = parseFloat(loc.lat), lon = parseFloat(loc.lon);
+    const lat = parseFloat(String(loc.lat)), lon = parseFloat(String(loc.lon));
     if (isNaN(lat) || isNaN(lon)) { setErr("Ungültige Koordinaten – bitte Ort erneut auswählen"); return; }
     setLoading(true); setErr("");
     try {
       const params = new URLSearchParams({
-        latitude: lat,
-        longitude: lon,
+        latitude: String(lat),
+        longitude: String(lon),
         hourly: "temperature_2m,precipitation_probability,windspeed_10m,uv_index",
         daily: "sunrise,sunset",
         timezone: "auto",
@@ -185,17 +266,16 @@ export default function App() {
       });
       const r = await fetch(`${WEATHER_URL}?${params}`);
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      const weatherData = await r.json();
+      const weatherData: WeatherData = await r.json();
       setResults(computeResults(weatherData, days, dur, crit));
-    } catch(e) {
-      setErr(`Fehler: ${e.message}`);
+    } catch (e) {
+      setErr(`Fehler: ${e instanceof Error ? e.message : "Unbekannter Fehler"}`);
     }
     setLoading(false);
   };
 
-  const upd = (k, v) => setCrit(c => ({ ...c, [k]: v }));
+  const upd = <K extends keyof Criteria>(k: K, v: Criteria[K]) => setCrit(c => ({ ...c, [k]: v }));
 
-  // ── RESULTS VIEW ──
   if (results) {
     return (
       <div className="min-h-screen bg-slate-50 p-4 max-w-lg mx-auto">
@@ -203,7 +283,7 @@ export default function App() {
           <button onClick={() => setResults(null)} className="text-blue-600 text-sm font-medium hover:underline flex-shrink-0">← Einstellungen</button>
           <div>
             <h1 className="text-lg font-bold text-gray-800">Trainingsvorschläge</h1>
-            <p className="text-xs text-gray-500">{loc.name} · {dur}h Training</p>
+            <p className="text-xs text-gray-500">{loc?.name} · {dur}h Training</p>
           </div>
         </div>
 
@@ -226,45 +306,45 @@ export default function App() {
             {day.slots.length === 0
               ? <p className="text-sm text-gray-400 italic text-center py-3">Keine Zeitfenster in diesem Bereich verfügbar</p>
               : <div className="space-y-2">
-                  {day.slots.map((s, i) => {
-                    const lv = LVLS[s.level];
-                    return (
-                      <div key={i} className={`rounded-xl border p-3 ${lv.bg} ${lv.border}`}>
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${lv.dot}`} />
-                            <span className="font-bold text-gray-800">{fmtHour(s.start)} – {fmtHour(s.start + dur)} Uhr</span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${lv.badge}`}>{lv.label}</span>
-                            {s.score > 0 && <span className="text-xs text-gray-400">{s.score}%</span>}
-                          </div>
+                {day.slots.map((s, i) => {
+                  const lv = LVLS[s.level];
+                  return (
+                    <div key={i} className={`rounded-xl border p-3 ${lv.bg} ${lv.border}`}>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${lv.dot}`} />
+                          <span className="font-bold text-gray-800">{fmtHour(s.start)} – {fmtHour(s.start + dur)} Uhr</span>
                         </div>
-                        <div className="grid grid-cols-4 gap-x-1 text-xs text-gray-600">
-                          <span>🌡️ {s.stats.avgTemp.toFixed(0)}°C</span>
-                          <span>💨 {s.stats.maxWind.toFixed(0)} km/h</span>
-                          <span>🌧️ {s.stats.maxRain}%</span>
-                          <span>☀️ UV {s.stats.maxUV.toFixed(0)}</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${lv.badge}`}>{lv.label}</span>
+                          {s.score > 0 && <span className="text-xs text-gray-400">{s.score}%</span>}
                         </div>
-                        {s.issues.length > 0 && (
-                          <div className="mt-2 flex flex-wrap gap-1">
-                            {s.issues.map((x, j) => <span key={j} className="text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded-md">⚠ {x}</span>)}
-                          </div>
-                        )}
-                        {s.warnings.length > 0 && (
-                          <div className="mt-1.5 flex flex-wrap gap-1">
-                            {s.warnings.map((x, j) => <span key={j} className="text-xs bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded-md">⚠ {x}</span>)}
-                          </div>
-                        )}
-                        {s.notes.length > 0 && (
-                          <div className="mt-1.5 flex flex-wrap gap-1">
-                            {s.notes.map((x, j) => <span key={j} className="text-xs bg-green-100 text-green-600 px-1.5 py-0.5 rounded-md">✓ {x}</span>)}
-                          </div>
-                        )}
                       </div>
-                    );
-                  })}
-                </div>
+                      <div className="grid grid-cols-4 gap-x-1 text-xs text-gray-600">
+                        <span>🌡️ {s.stats.avgTemp.toFixed(0)}°C</span>
+                        <span>💨 {s.stats.maxWind.toFixed(0)} km/h</span>
+                        <span>🌧️ {s.stats.maxRain}%</span>
+                        <span>☀️ UV {s.stats.maxUV.toFixed(0)}</span>
+                      </div>
+                      {s.issues.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-1">
+                          {s.issues.map((x, j) => <span key={j} className="text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded-md">⚠ {x}</span>)}
+                        </div>
+                      )}
+                      {s.warnings.length > 0 && (
+                        <div className="mt-1.5 flex flex-wrap gap-1">
+                          {s.warnings.map((x, j) => <span key={j} className="text-xs bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded-md">⚠ {x}</span>)}
+                        </div>
+                      )}
+                      {s.notes.length > 0 && (
+                        <div className="mt-1.5 flex flex-wrap gap-1">
+                          {s.notes.map((x, j) => <span key={j} className="text-xs bg-green-100 text-green-600 px-1.5 py-0.5 rounded-md">✓ {x}</span>)}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             }
           </Card>
         ))}
@@ -273,7 +353,6 @@ export default function App() {
     );
   }
 
-  // ── SETTINGS VIEW ──
   return (
     <div className="min-h-screen bg-slate-50 p-4 max-w-lg mx-auto">
       <div className="text-center mb-6 pt-2">
@@ -282,7 +361,6 @@ export default function App() {
         <p className="text-gray-400 text-sm mt-1">Optimale Trainingszeiten nach Wetter & Ort</p>
       </div>
 
-      {/* Location */}
       <Card className="mb-4">
         <SectionTitle>📍 Standort</SectionTitle>
         <div className="relative">
@@ -295,7 +373,12 @@ export default function App() {
             <div className="absolute z-20 w-full bg-white border border-gray-200 rounded-xl shadow-xl mt-1 overflow-hidden">
               {sugg.map((s, i) => (
                 <button key={i} className="w-full text-left px-3 py-2.5 hover:bg-blue-50 text-sm transition-colors border-b border-gray-50 last:border-0"
-                  onClick={() => { const name = `${s.name}${s.admin1 ? ", " + s.admin1 : ""}, ${s.country}`; setLoc({ name, lat: s.lat, lon: s.lon }); setSugg([]); setLocQ(name); }}>
+                  onClick={() => {
+                    const name = `${s.name}${s.admin1 ? ", " + s.admin1 : ""}, ${s.country}`;
+                    setLoc({ name, lat: s.lat, lon: s.lon });
+                    setSugg([]);
+                    setLocQ(name);
+                  }}>
                   <span className="font-medium">{s.name}</span>
                   <span className="text-gray-400">{s.admin1 ? ` · ${s.admin1}` : ""} · {s.country}</span>
                 </button>
@@ -305,7 +388,6 @@ export default function App() {
         </div>
       </Card>
 
-      {/* Duration */}
       <Card className="mb-4">
         <SectionTitle>⏱️ Trainingsdauer</SectionTitle>
         <div className="flex flex-wrap gap-2">
@@ -318,7 +400,6 @@ export default function App() {
         </div>
       </Card>
 
-      {/* Days */}
       <Card className="mb-4">
         <SectionTitle>📅 Verfügbare Tage & Zeitfenster</SectionTitle>
         <div className="space-y-2">
@@ -346,11 +427,9 @@ export default function App() {
         </div>
       </Card>
 
-      {/* Criteria */}
       <Card className="mb-4">
         <SectionTitle>⚙️ Bedingungen & Ausschlusskriterien</SectionTitle>
         <div className="space-y-4">
-
           <div className="flex items-center justify-between">
             <div>
               <div className="text-sm font-medium text-gray-700">🌙 Bei Dunkelheit fahren erlaubt</div>
