@@ -43,11 +43,9 @@ interface Suggestion {
 
 interface SlotResult {
   start: number;
-  level: "green" | "yellow" | "orange" | "red";
-  score: number;
+  level: "green" | "red";
   issues: string[];
   warnings: string[];
-  notes: string[];
   stats: { avgTemp: number; maxWind: number; maxRain: number; maxUV: number };
 }
 
@@ -100,26 +98,8 @@ function evalSlot({ hours, crit, sunriseH, sunsetH, startH, durH }: {
   if (maxWind > crit.maxWind) blocked.add(`Zu windig (${maxWind.toFixed(0)} km/h)`);
   if (crit.noRain && maxRain > crit.maxRainProb) blocked.add(`Regen ${maxRain}%`);
   if (maxUV > crit.maxUV) warns.add(`UV-Index ${maxUV.toFixed(0)}`);
-  const isBlocked = blocked.size > 0;
-  let score = 100;
-  if (!isBlocked) {
-    score -= (maxWind / crit.maxWind) * 38;
-    if (crit.noRain) score -= (maxRain / crit.maxRainProb) * 30;
-    score -= Math.max(0, 1 - (avgTemp - crit.minTemp) / 10) * 18;
-    score -= Math.max(0, 1 - (crit.maxTemp - avgTemp) / 3) * 8;
-    const uvStart = crit.maxUV * 0.7;
-    if (maxUV > uvStart) score -= ((maxUV - uvStart) / (crit.maxUV - uvStart)) * 6;
-    score = Math.max(0, Math.min(100, score));
-  } else score = 0;
-  const level: SlotResult["level"] = isBlocked ? "red" : score >= 70 ? "green" : score >= 40 ? "yellow" : "orange";
-  const notes: string[] = [];
-  if (!isBlocked) {
-    if (maxRain <= crit.maxRainProb * 0.3) notes.push("Kaum Regen");
-    if (avgTemp >= crit.minTemp + 3 && avgTemp <= 24) notes.push("Ideale Temp.");
-    if (maxWind <= crit.maxWind * 0.4) notes.push("Wenig Wind");
-    if (maxUV <= crit.maxUV * 0.4) notes.push("Geringer UV");
-  }
-  return { level, score: Math.round(score), issues: [...blocked], warnings: [...warns], notes, stats: { avgTemp, maxWind, maxRain, maxUV } };
+  const level: SlotResult["level"] = blocked.size > 0 ? "red" : "green";
+  return { level, issues: [...blocked], warnings: [...warns], stats: { avgTemp, maxWind, maxRain, maxUV } };
 }
 
 interface WeatherData {
@@ -167,20 +147,19 @@ function computeResults(data: WeatherData, days: Record<string, DayConfig>, durH
       const ev = evalSlot({ hours, crit, sunriseH, sunsetH, startH: sH, durH });
       allSlots.push({ start: sH, ...ev });
     }
-    allSlots.sort((a, b) => b.score - a.score);
+    allSlots.sort((a, b) => a.start - b.start);
     const kept: SlotResult[] = [];
     for (const s of allSlots) {
+      if (s.level !== "green") continue;
       if (!kept.some(ks => Math.abs(ks.start - s.start) < 1)) { kept.push(s); if (kept.length >= 3) break; }
     }
-    return { date: dayKey, from: cfg.from, to: cfg.to, sun: { sunrise: fmtSun(sun.sunrise), sunset: fmtSun(sun.sunset) }, slots: kept, allSlots: [...allSlots].sort((a, b) => a.start - b.start) };
+    return { date: dayKey, from: cfg.from, to: cfg.to, sun: { sunrise: fmtSun(sun.sunrise), sunset: fmtSun(sun.sunset) }, slots: kept, allSlots };
   });
 }
 
 const LVLS = {
-  green:  { bg: "bg-green-50",  border: "border-green-400",  dot: "bg-green-500",  badge: "bg-green-100 text-green-700",   label: "Ideal" },
-  yellow: { bg: "bg-yellow-50", border: "border-yellow-400", dot: "bg-yellow-400", badge: "bg-yellow-100 text-yellow-700", label: "Akzeptabel" },
-  orange: { bg: "bg-orange-50", border: "border-orange-400", dot: "bg-orange-400", badge: "bg-orange-100 text-orange-700", label: "Grenzwertig" },
-  red:    { bg: "bg-red-50",    border: "border-red-300",    dot: "bg-red-400",    badge: "bg-red-100 text-red-700",       label: "Nicht empfohlen" },
+  green: { bg: "bg-green-50", border: "border-green-400", dot: "bg-green-500", badge: "bg-green-100 text-green-700", label: "Geeignet" },
+  red:   { bg: "bg-red-50",   border: "border-red-300",   dot: "bg-red-400",   badge: "bg-red-100 text-red-700",     label: "Nicht empfohlen" },
 };
 
 function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
@@ -222,10 +201,7 @@ function SlotCard({ s, dur }: { s: SlotResult; dur: number }) {
           <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${lv.dot}`} />
           <span className="font-bold text-gray-800">{fmtHour(s.start)} – {fmtHour(s.start + dur)} Uhr</span>
         </div>
-        <div className="flex items-center gap-1.5">
-          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${lv.badge}`}>{lv.label}</span>
-          {s.score > 0 && <span className="text-xs text-gray-400">{s.score}%</span>}
-        </div>
+        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${lv.badge}`}>{lv.label}</span>
       </div>
       <div className="grid grid-cols-4 gap-x-1 text-xs text-gray-600">
         <span>🌡️ {s.stats.avgTemp.toFixed(0)}°C</span>
@@ -243,11 +219,6 @@ function SlotCard({ s, dur }: { s: SlotResult; dur: number }) {
           {s.warnings.map((x, j) => <span key={j} className="text-xs bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded-md">⚠ {x}</span>)}
         </div>
       )}
-      {s.notes.length > 0 && (
-        <div className="mt-1.5 flex flex-wrap gap-1">
-          {s.notes.map((x, j) => <span key={j} className="text-xs bg-green-100 text-green-600 px-1.5 py-0.5 rounded-md">✓ {x}</span>)}
-        </div>
-      )}
     </div>
   );
 }
@@ -257,7 +228,7 @@ export default function App() {
   const [locQ, setLocQ] = useState("");
   const [sugg, setSugg] = useState<Suggestion[]>([]);
   const [dur, setDur] = useState(1.5);
-  const [crit, setCrit] = useState<Criteria>({ noRain: true, maxRainProb: 20, minTemp: 15, maxTemp: 36, maxWind: 20, maxUV: 9, allowDark: false });
+  const [crit, setCrit] = useState<Criteria>({ noRain: true, maxRainProb: 20, minTemp: 15, maxTemp: 30, maxWind: 20, maxUV: 9, allowDark: false });
   const [days, setDays] = useState<Record<string, DayConfig>>(() => {
     const obj: Record<string, DayConfig> = {};
     for (let i = 0; i < 7; i++) {
