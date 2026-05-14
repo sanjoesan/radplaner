@@ -149,10 +149,18 @@ function computeResults(data: WeatherData, days: Record<string, DayConfig>, durH
     }
     allSlots.sort((a, b) => a.start - b.start);
     const kept: SlotResult[] = [];
-    for (const s of allSlots) {
-      if (s.level !== "green") continue;
-      if (!kept.some(ks => Math.abs(ks.start - s.start) < 1)) { kept.push(s); if (kept.length >= 3) break; }
+    const tryAdd = (pool: SlotResult[]) => {
+      for (const s of pool) {
+        if (kept.length >= 3) break;
+        if (!kept.some(ks => Math.abs(ks.start - s.start) < 1)) kept.push(s);
+      }
+    };
+    tryAdd(allSlots.filter(s => s.level === "green"));
+    if (kept.length < 3) {
+      const reds = allSlots.filter(s => s.level === "red").sort((a, b) => a.issues.length - b.issues.length || a.start - b.start);
+      tryAdd(reds);
     }
+    kept.sort((a, b) => a.start - b.start);
     return { date: dayKey, from: cfg.from, to: cfg.to, sun: { sunrise: fmtSun(sun.sunrise), sunset: fmtSun(sun.sunset) }, slots: kept, allSlots };
   });
 }
