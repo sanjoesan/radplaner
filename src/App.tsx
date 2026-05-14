@@ -53,8 +53,11 @@ interface SlotResult {
 
 interface DayResult {
   date: string;
+  from: string;
+  to: string;
   sun: { sunrise: string; sunset: string };
   slots: SlotResult[];
+  allSlots: SlotResult[];
 }
 
 function parseHM(s: string): number {
@@ -168,7 +171,7 @@ function computeResults(data: WeatherData, days: Record<string, DayConfig>, durH
     for (const s of allSlots) {
       if (!kept.some(ks => Math.abs(ks.start - s.start) < 1)) { kept.push(s); if (kept.length >= 3) break; }
     }
-    return { date: dayKey, sun: { sunrise: fmtSun(sun.sunrise), sunset: fmtSun(sun.sunset) }, slots: kept };
+    return { date: dayKey, from: cfg.from, to: cfg.to, sun: { sunrise: fmtSun(sun.sunrise), sunset: fmtSun(sun.sunset) }, slots: kept, allSlots: [...allSlots].sort((a, b) => a.start - b.start) };
   });
 }
 
@@ -209,6 +212,45 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   return <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">{children}</h2>;
 }
 
+function SlotCard({ s, dur }: { s: SlotResult; dur: number }) {
+  const lv = LVLS[s.level];
+  return (
+    <div className={`rounded-xl border p-3 ${lv.bg} ${lv.border}`}>
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${lv.dot}`} />
+          <span className="font-bold text-gray-800">{fmtHour(s.start)} – {fmtHour(s.start + dur)} Uhr</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${lv.badge}`}>{lv.label}</span>
+          {s.score > 0 && <span className="text-xs text-gray-400">{s.score}%</span>}
+        </div>
+      </div>
+      <div className="grid grid-cols-4 gap-x-1 text-xs text-gray-600">
+        <span>🌡️ {s.stats.avgTemp.toFixed(0)}°C</span>
+        <span>💨 {s.stats.maxWind.toFixed(0)} km/h</span>
+        <span>🌧️ {s.stats.maxRain}%</span>
+        <span>☀️ UV {s.stats.maxUV.toFixed(0)}</span>
+      </div>
+      {s.issues.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1">
+          {s.issues.map((x, j) => <span key={j} className="text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded-md">⚠ {x}</span>)}
+        </div>
+      )}
+      {s.warnings.length > 0 && (
+        <div className="mt-1.5 flex flex-wrap gap-1">
+          {s.warnings.map((x, j) => <span key={j} className="text-xs bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded-md">⚠ {x}</span>)}
+        </div>
+      )}
+      {s.notes.length > 0 && (
+        <div className="mt-1.5 flex flex-wrap gap-1">
+          {s.notes.map((x, j) => <span key={j} className="text-xs bg-green-100 text-green-600 px-1.5 py-0.5 rounded-md">✓ {x}</span>)}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function App() {
   const [loc, setLoc] = useState<Location | null>(null);
   const [locQ, setLocQ] = useState("");
@@ -226,6 +268,7 @@ export default function App() {
     return obj;
   });
   const [results, setResults] = useState<DayResult[] | null>(null);
+  const [selectedDay, setSelectedDay] = useState<DayResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
   const [geoLoading, setGeoLoading] = useState(false);
@@ -277,6 +320,24 @@ export default function App() {
 
   const upd = <K extends keyof Criteria>(k: K, v: Criteria[K]) => setCrit(c => ({ ...c, [k]: v }));
 
+  if (selectedDay) {
+    return (
+      <div className="min-h-screen bg-slate-50 p-4 max-w-lg mx-auto">
+        <div className="flex items-center gap-3 mb-5">
+          <button onClick={() => setSelectedDay(null)} className="text-blue-600 text-sm font-medium hover:underline flex-shrink-0">← Ergebnisse</button>
+          <div>
+            <h1 className="text-lg font-bold text-gray-800">{fmtDate(selectedDay.date)}</h1>
+            <p className="text-xs text-gray-500">{selectedDay.from} – {selectedDay.to} · {dur}h Slots · 🌅 {selectedDay.sun.sunrise} 🌇 {selectedDay.sun.sunset}</p>
+          </div>
+        </div>
+        <div className="space-y-2">
+          {selectedDay.allSlots.map((s, i) => <SlotCard key={i} s={s} dur={dur} />)}
+        </div>
+        <p className="text-center text-xs text-gray-400 mt-4 mb-6">Wetterdaten: open-meteo.com</p>
+      </div>
+    );
+  }
+
   if (results) {
     return (
       <div className="min-h-screen bg-slate-50 p-4 max-w-lg mx-auto">
@@ -298,53 +359,19 @@ export default function App() {
 
         {results.map(day => (
           <Card key={day.date} className="mb-4">
-            <div className="flex justify-between items-start mb-3">
+            <button className="flex justify-between items-start mb-3 w-full text-left hover:opacity-70 transition-opacity" onClick={() => setSelectedDay(day)}>
               <h3 className="font-semibold text-gray-800 text-sm">{fmtDate(day.date)}</h3>
-              <div className="text-xs text-gray-400 text-right flex-shrink-0 ml-2">
-                🌅 {day.sun.sunrise}<br />🌇 {day.sun.sunset}
+              <div className="flex items-start gap-2 flex-shrink-0 ml-2">
+                <div className="text-xs text-gray-400 text-right">
+                  🌅 {day.sun.sunrise}<br />🌇 {day.sun.sunset}
+                </div>
+                <span className="text-gray-300 text-sm mt-0.5">›</span>
               </div>
-            </div>
+            </button>
             {day.slots.length === 0
               ? <p className="text-sm text-gray-400 italic text-center py-3">Keine Zeitfenster in diesem Bereich verfügbar</p>
               : <div className="space-y-2">
-                {day.slots.map((s, i) => {
-                  const lv = LVLS[s.level];
-                  return (
-                    <div key={i} className={`rounded-xl border p-3 ${lv.bg} ${lv.border}`}>
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${lv.dot}`} />
-                          <span className="font-bold text-gray-800">{fmtHour(s.start)} – {fmtHour(s.start + dur)} Uhr</span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${lv.badge}`}>{lv.label}</span>
-                          {s.score > 0 && <span className="text-xs text-gray-400">{s.score}%</span>}
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-4 gap-x-1 text-xs text-gray-600">
-                        <span>🌡️ {s.stats.avgTemp.toFixed(0)}°C</span>
-                        <span>💨 {s.stats.maxWind.toFixed(0)} km/h</span>
-                        <span>🌧️ {s.stats.maxRain}%</span>
-                        <span>☀️ UV {s.stats.maxUV.toFixed(0)}</span>
-                      </div>
-                      {s.issues.length > 0 && (
-                        <div className="mt-2 flex flex-wrap gap-1">
-                          {s.issues.map((x, j) => <span key={j} className="text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded-md">⚠ {x}</span>)}
-                        </div>
-                      )}
-                      {s.warnings.length > 0 && (
-                        <div className="mt-1.5 flex flex-wrap gap-1">
-                          {s.warnings.map((x, j) => <span key={j} className="text-xs bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded-md">⚠ {x}</span>)}
-                        </div>
-                      )}
-                      {s.notes.length > 0 && (
-                        <div className="mt-1.5 flex flex-wrap gap-1">
-                          {s.notes.map((x, j) => <span key={j} className="text-xs bg-green-100 text-green-600 px-1.5 py-0.5 rounded-md">✓ {x}</span>)}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                {day.slots.map((s, i) => <SlotCard key={i} s={s} dur={dur} />)}
               </div>
             }
           </Card>
