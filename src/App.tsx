@@ -214,7 +214,7 @@ export default function App() {
   const [locQ, setLocQ] = useState("");
   const [sugg, setSugg] = useState<Suggestion[]>([]);
   const [dur, setDur] = useState(1.5);
-  const [crit, setCrit] = useState<Criteria>({ noRain: true, maxRainProb: 20, minTemp: 15, maxTemp: 36, maxWind: 35, maxUV: 9, allowDark: false });
+  const [crit, setCrit] = useState<Criteria>({ noRain: true, maxRainProb: 20, minTemp: 15, maxTemp: 36, maxWind: 20, maxUV: 9, allowDark: false });
   const [days, setDays] = useState<Record<string, DayConfig>>(() => {
     const obj: Record<string, DayConfig> = {};
     for (let i = 0; i < 7; i++) {
