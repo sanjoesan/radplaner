@@ -110,8 +110,8 @@ function evalSlot({ hours, crit, weights, sunriseH, sunsetH, startH, durH }: {
   const maxWind = Math.max(...hours.map(h => h.wind));
   const maxRain = Math.max(...hours.map(h => h.rain));
   const maxUV = Math.max(...hours.map(h => h.uv));
-  if (avgTemp < crit.minTemp) blocked.add(`Zu kalt (Ø${avgTemp.toFixed(0)}°C)`);
-  if (avgTemp > crit.maxTemp) blocked.add(`Zu heiß (Ø${avgTemp.toFixed(0)}°C)`);
+  if (avgTemp < crit.minTemp) blocked.add(`Zu kalt (Ø${avgTemp.toFixed(1)}°C)`);
+  if (avgTemp > crit.maxTemp) blocked.add(`Zu heiß (Ø${avgTemp.toFixed(1)}°C)`);
   if (maxWind > crit.maxWind) blocked.add(`Zu windig (${maxWind.toFixed(0)} km/h)`);
   if (crit.noRain && maxRain > crit.maxRainProb) blocked.add(`Regen ${maxRain}%`);
   if (maxUV > crit.maxUV) warns.add(`UV-Index ${maxUV.toFixed(0)}`);
@@ -273,7 +273,7 @@ function SlotCard({ s, dur }: { s: SlotResult; dur: number }) {
         </div>
       </div>
       <div className="grid grid-cols-4 gap-x-1 text-xs text-gray-600">
-        <span>🌡️ {s.stats.avgTemp.toFixed(0)}°C</span>
+        <span>🌡️ {s.stats.avgTemp.toFixed(1)}°C</span>
         <span>💨 {s.stats.maxWind.toFixed(0)} km/h</span>
         <span>🌧️ {s.stats.maxRain}%</span>
         <span>☀️ UV {s.stats.maxUV.toFixed(0)}</span>
