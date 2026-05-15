@@ -212,13 +212,13 @@ function computeResults(data: WeatherData, days: Record<string, DayConfig>, durH
 }
 
 const LVLS = {
-  green: { bg: "bg-green-50", border: "border-green-400", dot: "bg-green-500", badge: "bg-green-100 text-green-700", label: "Geeignet" },
-  red:   { bg: "bg-red-50",   border: "border-red-300",   dot: "bg-red-400",   badge: "bg-red-100 text-red-700",     label: "Nicht empfohlen" },
+  green: { bg: "bg-green-50 dark:bg-green-900/20", border: "border-green-400 dark:border-green-700", dot: "bg-green-500", badge: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300", label: "Geeignet" },
+  red:   { bg: "bg-red-50 dark:bg-red-900/20",     border: "border-red-300 dark:border-red-800",     dot: "bg-red-400",   badge: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",       label: "Nicht empfohlen" },
 };
 
 function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
   return (
-    <button onClick={() => onChange(!on)} className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${on ? "bg-blue-500" : "bg-gray-300"}`}>
+    <button onClick={() => onChange(!on)} className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${on ? "bg-blue-500" : "bg-gray-300 dark:bg-slate-600"}`}>
       <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-all duration-200 ${on ? "left-6" : "left-1"}`} />
     </button>
   );
@@ -230,35 +230,130 @@ function Slider({ label, min, max, step, value, onChange }: {
   return (
     <div className="space-y-1">
       <div className="flex justify-between">
-        <span className="text-sm text-gray-600">{label}</span>
+        <span className="text-sm text-gray-600 dark:text-slate-300">{label}</span>
       </div>
       <input type="range" min={min} max={max} step={step} value={value} onChange={e => onChange(+e.target.value)} className="w-full accent-blue-500" />
-      <div className="flex justify-between text-xs text-gray-400"><span>{min}</span><span>{max}</span></div>
+      <div className="flex justify-between text-xs text-gray-400 dark:text-slate-500"><span>{min}</span><span>{max}</span></div>
     </div>
   );
 }
 
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <div className={`bg-white rounded-2xl shadow-sm border border-gray-100 p-4 ${className}`}>{children}</div>;
+  return <div className={`bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700 p-4 ${className}`}>{children}</div>;
 }
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">{children}</h2>;
+  return <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500 mb-3">{children}</h2>;
 }
 
 function WeightSelector({ label, value, onChange }: { label: string; value: WeightLevel; onChange: (v: WeightLevel) => void }) {
   return (
     <div>
-      <div className="text-sm font-medium text-gray-700 mb-1.5">{label}</div>
+      <div className="text-sm font-medium text-gray-700 dark:text-slate-200 mb-1.5">{label}</div>
       <div className="flex gap-1">
         {WEIGHT_LEVELS.map(lv => (
           <button key={lv} onClick={() => onChange(lv)}
-            className={`flex-1 px-1 py-1.5 rounded-lg text-[11px] font-medium transition-all border ${value === lv ? "bg-blue-500 text-white border-blue-500 shadow-sm" : "bg-white text-gray-500 border-gray-200 hover:border-blue-300"}`}>
+            className={`flex-1 px-1 py-1.5 rounded-lg text-[11px] font-medium transition-all border ${value === lv ? "bg-blue-500 text-white border-blue-500 shadow-sm" : "bg-white dark:bg-slate-700 text-gray-500 dark:text-slate-300 border-gray-200 dark:border-slate-600 hover:border-blue-300"}`}>
             {WEIGHT_LABELS[lv]}
           </button>
         ))}
       </div>
     </div>
+  );
+}
+
+function PixelCyclist() {
+  const dark = "#0f172a";
+  const tire = "#1e293b";
+  const spoke = "#cbd5e1";
+  const frame = "#facc15";
+  const jersey = "#dc2626";
+  const jerseyDark = "#991b1b";
+  const skin = "#fcd5b5";
+  const helmet = "#1e3a8a";
+  const helmetLite = "#2563eb";
+  const shorts = "#0f172a";
+  const bar = "#475569";
+  return (
+    <svg viewBox="0 0 32 20" shapeRendering="crispEdges" className="mx-auto w-48 h-auto block drop-shadow-md" xmlns="http://www.w3.org/2000/svg">
+      {/* helmet */}
+      <rect x="17" y="2" width="6" height="1" fill={helmet} />
+      <rect x="16" y="3" width="8" height="1" fill={helmet} />
+      <rect x="16" y="4" width="8" height="1" fill={helmetLite} />
+      <rect x="15" y="4" width="1" height="1" fill={helmet} />
+      {/* face */}
+      <rect x="17" y="5" width="6" height="1" fill={skin} />
+      <rect x="22" y="6" width="2" height="1" fill={skin} />
+      {/* jersey upper back */}
+      <rect x="11" y="6" width="11" height="1" fill={jersey} />
+      <rect x="10" y="7" width="13" height="1" fill={jersey} />
+      <rect x="9" y="8" width="14" height="1" fill={jersey} />
+      <rect x="9" y="9" width="14" height="1" fill={jerseyDark} />
+      <rect x="22" y="8" width="1" height="2" fill={jerseyDark} />
+      {/* arm reaching forward to bars */}
+      <rect x="8" y="9" width="1" height="1" fill={jersey} />
+      <rect x="6" y="10" width="3" height="1" fill={skin} />
+      <rect x="4" y="11" width="3" height="1" fill={skin} />
+      {/* shorts */}
+      <rect x="16" y="10" width="7" height="1" fill={shorts} />
+      <rect x="17" y="11" width="6" height="1" fill={shorts} />
+      {/* leg back (pedaling, up) */}
+      <rect x="18" y="12" width="2" height="2" fill={shorts} />
+      <rect x="18" y="14" width="2" height="1" fill={skin} />
+      <rect x="17" y="15" width="3" height="1" fill={dark} />
+      {/* leg front (pedaling, down) */}
+      <rect x="20" y="12" width="2" height="3" fill={shorts} />
+      <rect x="20" y="15" width="2" height="1" fill={skin} />
+      <rect x="19" y="16" width="3" height="1" fill={dark} />
+      {/* bike: top tube */}
+      <rect x="8" y="12" width="13" height="1" fill={frame} />
+      {/* down tube */}
+      <rect x="7" y="13" width="2" height="1" fill={frame} />
+      <rect x="6" y="14" width="2" height="1" fill={frame} />
+      {/* seat tube + saddle */}
+      <rect x="21" y="11" width="3" height="1" fill={bar} />
+      <rect x="22" y="12" width="1" height="3" fill={frame} />
+      {/* fork */}
+      <rect x="4" y="12" width="1" height="4" fill={frame} />
+      {/* handlebars */}
+      <rect x="3" y="10" width="2" height="1" fill={bar} />
+      <rect x="3" y="11" width="1" height="2" fill={bar} />
+      {/* front wheel */}
+      <rect x="2" y="15" width="5" height="1" fill={tire} />
+      <rect x="1" y="16" width="7" height="1" fill={tire} />
+      <rect x="0" y="17" width="1" height="2" fill={tire} />
+      <rect x="8" y="17" width="1" height="2" fill={tire} />
+      <rect x="1" y="18" width="1" height="1" fill={tire} />
+      <rect x="7" y="18" width="1" height="1" fill={tire} />
+      <rect x="1" y="19" width="7" height="1" fill={tire} />
+      {/* front spokes / hub */}
+      <rect x="4" y="16" width="1" height="3" fill={spoke} />
+      <rect x="2" y="17" width="5" height="1" fill={spoke} opacity="0.4" />
+      <rect x="4" y="17" width="1" height="1" fill={dark} />
+      {/* rear wheel */}
+      <rect x="20" y="15" width="5" height="1" fill={tire} />
+      <rect x="19" y="16" width="7" height="1" fill={tire} />
+      <rect x="18" y="17" width="1" height="2" fill={tire} />
+      <rect x="26" y="17" width="1" height="2" fill={tire} />
+      <rect x="19" y="18" width="1" height="1" fill={tire} />
+      <rect x="25" y="18" width="1" height="1" fill={tire} />
+      <rect x="19" y="19" width="7" height="1" fill={tire} />
+      {/* rear spokes / hub */}
+      <rect x="22" y="16" width="1" height="3" fill={spoke} />
+      <rect x="20" y="17" width="5" height="1" fill={spoke} opacity="0.4" />
+      <rect x="22" y="17" width="1" height="1" fill={dark} />
+      {/* chain */}
+      <rect x="9" y="15" width="9" height="1" fill={dark} opacity="0.6" />
+    </svg>
+  );
+}
+
+function ThemeToggle({ dark, onToggle }: { dark: boolean; onToggle: () => void }) {
+  return (
+    <button onClick={onToggle} aria-label="Theme umschalten"
+      className="fixed top-3 right-3 z-30 w-10 h-10 rounded-full bg-white/80 dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700 backdrop-blur text-lg shadow-sm hover:scale-105 transition-transform">
+      {dark ? "☀️" : "🌙"}
+    </button>
   );
 }
 
@@ -269,14 +364,14 @@ function SlotCard({ s, dur }: { s: SlotResult; dur: number }) {
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${lv.dot}`} />
-          <span className="font-bold text-gray-800">{fmtHour(s.start)} – {fmtHour(s.start + dur)} Uhr</span>
+          <span className="font-bold text-gray-800 dark:text-slate-100">{fmtHour(s.start)} – {fmtHour(s.start + dur)} Uhr</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-white/70 text-gray-700 border border-gray-200">{s.score}</span>
+          <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-white/70 dark:bg-slate-800/70 text-gray-700 dark:text-slate-200 border border-gray-200 dark:border-slate-600">{s.score}</span>
           <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${lv.badge}`}>{lv.label}</span>
         </div>
       </div>
-      <div className="grid grid-cols-4 gap-x-1 text-xs text-gray-600">
+      <div className="grid grid-cols-4 gap-x-1 text-xs text-gray-600 dark:text-slate-300">
         <span>🌡️ {s.stats.avgTemp.toFixed(1)}°C</span>
         <span>💨 {s.stats.maxWind.toFixed(0)} km/h</span>
         <span>🌧️ {s.stats.maxRain}%</span>
@@ -284,17 +379,17 @@ function SlotCard({ s, dur }: { s: SlotResult; dur: number }) {
       </div>
       {s.issues.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-1">
-          {s.issues.map((x, j) => <span key={j} className="text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded-md">⚠ {x}</span>)}
+          {s.issues.map((x, j) => <span key={j} className="text-xs bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-300 px-1.5 py-0.5 rounded-md">⚠ {x}</span>)}
         </div>
       )}
       {s.warnings.length > 0 && (
         <div className="mt-1.5 flex flex-wrap gap-1">
-          {s.warnings.map((x, j) => <span key={j} className="text-xs bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded-md">⚠ {x}</span>)}
+          {s.warnings.map((x, j) => <span key={j} className="text-xs bg-amber-100 text-amber-600 dark:bg-amber-900/40 dark:text-amber-300 px-1.5 py-0.5 rounded-md">⚠ {x}</span>)}
         </div>
       )}
       {s.tips.length > 0 && (
         <div className="mt-1.5 flex flex-wrap gap-1">
-          {s.tips.map((x, j) => <span key={j} className="text-xs bg-blue-50 text-blue-700 border border-blue-100 px-1.5 py-0.5 rounded-md">{x}</span>)}
+          {s.tips.map((x, j) => <span key={j} className="text-xs bg-blue-50 text-blue-700 border border-blue-100 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800 px-1.5 py-0.5 rounded-md">{x}</span>)}
         </div>
       )}
     </div>
@@ -323,6 +418,14 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
   const [geoLoading, setGeoLoading] = useState(false);
+  const [dark, setDark] = useState(() => typeof document !== "undefined" && document.documentElement.classList.contains("dark"));
+
+  const toggleDark = () => {
+    const next = !dark;
+    setDark(next);
+    document.documentElement.classList.toggle("dark", next);
+    try { localStorage.setItem("theme", next ? "dark" : "light"); } catch { /* ignore */ }
+  };
 
   useEffect(() => {
     if (locQ.length < 2) { setSugg([]); return; }
@@ -373,30 +476,32 @@ export default function App() {
 
   if (selectedDay) {
     return (
-      <div className="min-h-screen bg-slate-50 p-4 max-w-lg mx-auto">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 p-4 max-w-lg mx-auto">
+        <ThemeToggle dark={dark} onToggle={toggleDark} />
         <div className="flex items-center gap-3 mb-5">
-          <button onClick={() => setSelectedDay(null)} className="text-blue-600 text-sm font-medium hover:underline flex-shrink-0">← Ergebnisse</button>
+          <button onClick={() => setSelectedDay(null)} className="text-blue-600 dark:text-blue-400 text-sm font-medium hover:underline flex-shrink-0">← Ergebnisse</button>
           <div>
-            <h1 className="text-lg font-bold text-gray-800">{fmtDate(selectedDay.date)}</h1>
-            <p className="text-xs text-gray-500">{selectedDay.from} – {selectedDay.to} · {dur}h Slots · 🌅 {selectedDay.sun.sunrise} 🌇 {selectedDay.sun.sunset}</p>
+            <h1 className="text-lg font-bold text-gray-800 dark:text-slate-100">{fmtDate(selectedDay.date)}</h1>
+            <p className="text-xs text-gray-500 dark:text-slate-400">{selectedDay.from} – {selectedDay.to} · {dur}h Slots · 🌅 {selectedDay.sun.sunrise} 🌇 {selectedDay.sun.sunset}</p>
           </div>
         </div>
         <div className="space-y-2">
           {selectedDay.allSlots.map((s, i) => <SlotCard key={i} s={s} dur={dur} />)}
         </div>
-        <p className="text-center text-xs text-gray-400 mt-4 mb-6">Wetterdaten: open-meteo.com</p>
+        <p className="text-center text-xs text-gray-400 dark:text-slate-500 mt-4 mb-6">Wetterdaten: open-meteo.com</p>
       </div>
     );
   }
 
   if (results) {
     return (
-      <div className="min-h-screen bg-slate-50 p-4 max-w-lg mx-auto">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 p-4 max-w-lg mx-auto">
+        <ThemeToggle dark={dark} onToggle={toggleDark} />
         <div className="flex items-center gap-3 mb-5">
-          <button onClick={() => setResults(null)} className="text-blue-600 text-sm font-medium hover:underline flex-shrink-0">← Einstellungen</button>
+          <button onClick={() => setResults(null)} className="text-blue-600 dark:text-blue-400 text-sm font-medium hover:underline flex-shrink-0">← Einstellungen</button>
           <div>
-            <h1 className="text-lg font-bold text-gray-800">Trainingsvorschläge</h1>
-            <p className="text-xs text-gray-500">{loc?.name} · {dur}h Training</p>
+            <h1 className="text-lg font-bold text-gray-800 dark:text-slate-100">Trainingsvorschläge</h1>
+            <p className="text-xs text-gray-500 dark:text-slate-400">{loc?.name} · {dur}h Training</p>
           </div>
         </div>
 
@@ -411,33 +516,34 @@ export default function App() {
         {results.map(day => (
           <Card key={day.date} className="mb-4">
             <button className="flex justify-between items-start mb-3 w-full text-left hover:opacity-70 transition-opacity" onClick={() => setSelectedDay(day)}>
-              <h3 className="font-semibold text-gray-800 text-sm">{fmtDate(day.date)}</h3>
+              <h3 className="font-semibold text-gray-800 dark:text-slate-100 text-sm">{fmtDate(day.date)}</h3>
               <div className="flex items-start gap-2 flex-shrink-0 ml-2">
-                <div className="text-xs text-gray-400 text-right">
+                <div className="text-xs text-gray-400 dark:text-slate-500 text-right">
                   🌅 {day.sun.sunrise}<br />🌇 {day.sun.sunset}
                 </div>
-                <span className="text-gray-300 text-sm mt-0.5">›</span>
+                <span className="text-gray-300 dark:text-slate-600 text-sm mt-0.5">›</span>
               </div>
             </button>
             {day.slots.length === 0
-              ? <p className="text-sm text-gray-400 italic text-center py-3">Keine Zeitfenster in diesem Bereich verfügbar</p>
+              ? <p className="text-sm text-gray-400 dark:text-slate-500 italic text-center py-3">Keine Zeitfenster in diesem Bereich verfügbar</p>
               : <div className="space-y-2">
                 {day.slots.map((s, i) => <SlotCard key={i} s={s} dur={dur} />)}
               </div>
             }
           </Card>
         ))}
-        <p className="text-center text-xs text-gray-400 mt-1 mb-6">Wetterdaten: open-meteo.com</p>
+        <p className="text-center text-xs text-gray-400 dark:text-slate-500 mt-1 mb-6">Wetterdaten: open-meteo.com</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 max-w-lg mx-auto">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 p-4 max-w-lg mx-auto">
+      <ThemeToggle dark={dark} onToggle={toggleDark} />
       <div className="text-center mb-6 pt-2">
-        <div className="text-4xl mb-2">🚴‍♂️</div>
-        <h1 className="text-2xl font-bold text-gray-800">Rennrad-Trainingsplaner</h1>
-        <p className="text-gray-400 text-sm mt-1">Optimale Trainingszeiten nach Wetter & Ort</p>
+        <PixelCyclist />
+        <h1 className="text-2xl font-bold text-gray-800 dark:text-slate-100 mt-3">Rennrad-Trainingsplaner</h1>
+        <p className="text-gray-400 dark:text-slate-500 text-sm mt-1">Optimale Trainingszeiten nach Wetter & Ort</p>
       </div>
 
       <Card className="mb-4">
@@ -445,13 +551,13 @@ export default function App() {
         <div className="relative">
           <input type="text" value={locQ} placeholder="Stadt oder Ort eingeben..."
             onChange={e => { setLocQ(e.target.value); setLoc(null); if (!e.target.value) setSugg([]); }}
-            className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300" />
-          {geoLoading && <div className="mt-1.5 text-xs text-blue-500">Suche...</div>}
-          {loc && <div className="mt-1.5 text-xs text-green-600 font-medium">✓ {loc.name}</div>}
+            className="w-full border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-800 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300" />
+          {geoLoading && <div className="mt-1.5 text-xs text-blue-500 dark:text-blue-400">Suche...</div>}
+          {loc && <div className="mt-1.5 text-xs text-green-600 dark:text-green-400 font-medium">✓ {loc.name}</div>}
           {sugg.length > 0 && !loc && (
-            <div className="absolute z-20 w-full bg-white border border-gray-200 rounded-xl shadow-xl mt-1 overflow-hidden">
+            <div className="absolute z-20 w-full bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl shadow-xl mt-1 overflow-hidden">
               {sugg.map((s, i) => (
-                <button key={i} className="w-full text-left px-3 py-2.5 hover:bg-blue-50 text-sm transition-colors border-b border-gray-50 last:border-0"
+                <button key={i} className="w-full text-left px-3 py-2.5 hover:bg-blue-50 dark:hover:bg-slate-700 text-sm text-gray-700 dark:text-slate-200 transition-colors border-b border-gray-50 dark:border-slate-700 last:border-0"
                   onClick={() => {
                     const name = `${s.name}${s.admin1 ? ", " + s.admin1 : ""}, ${s.country}`;
                     setLoc({ name, lat: s.lat, lon: s.lon });
@@ -459,7 +565,7 @@ export default function App() {
                     setLocQ(name);
                   }}>
                   <span className="font-medium">{s.name}</span>
-                  <span className="text-gray-400">{s.admin1 ? ` · ${s.admin1}` : ""} · {s.country}</span>
+                  <span className="text-gray-400 dark:text-slate-500">{s.admin1 ? ` · ${s.admin1}` : ""} · {s.country}</span>
                 </button>
               ))}
             </div>
@@ -472,7 +578,7 @@ export default function App() {
         <div className="flex flex-wrap gap-2">
           {DURATION_OPTS.map(d => (
             <button key={d} onClick={() => setDur(d)}
-              className={`px-3.5 py-1.5 rounded-full text-sm font-semibold transition-all border ${dur === d ? "bg-blue-500 text-white border-blue-500 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-blue-300"}`}>
+              className={`px-3.5 py-1.5 rounded-full text-sm font-semibold transition-all border ${dur === d ? "bg-blue-500 text-white border-blue-500 shadow-sm" : "bg-white dark:bg-slate-700 text-gray-600 dark:text-slate-300 border-gray-200 dark:border-slate-600 hover:border-blue-300"}`}>
               {d}h
             </button>
           ))}
@@ -486,18 +592,18 @@ export default function App() {
             const d = new Date(k + "T12:00");
             const label = d.toLocaleDateString("de-AT", { weekday: "short", day: "numeric", month: "short" });
             return (
-              <div key={k} className={`px-2.5 py-2 rounded-xl transition-all ${cfg.enabled ? "bg-blue-50 border border-blue-100" : "bg-gray-50 border border-gray-100 opacity-50"}`}>
+              <div key={k} className={`px-2.5 py-2 rounded-xl transition-all ${cfg.enabled ? "bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800" : "bg-gray-50 dark:bg-slate-700/50 border border-gray-100 dark:border-slate-700 opacity-50"}`}>
                 <div className="flex items-center gap-2">
                   <input type="checkbox" checked={cfg.enabled} onChange={() => setDays(p => ({ ...p, [k]: { ...p[k], enabled: !p[k].enabled } }))} className="w-4 h-4 accent-blue-500 flex-shrink-0" />
-                  <span className="text-sm font-medium text-gray-700">{label}</span>
+                  <span className="text-sm font-medium text-gray-700 dark:text-slate-200">{label}</span>
                 </div>
                 {cfg.enabled && (
                   <div className="flex items-center gap-1.5 mt-1.5 pl-6">
                     <input type="time" value={cfg.from} onChange={e => setDays(p => ({ ...p, [k]: { ...p[k], from: e.target.value } }))}
-                      className="flex-1 min-w-0 border border-gray-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-300 bg-white" />
-                    <span className="text-gray-300 text-xs flex-shrink-0">–</span>
+                      className="flex-1 min-w-0 border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-800 dark:text-slate-100 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-300" />
+                    <span className="text-gray-300 dark:text-slate-500 text-xs flex-shrink-0">–</span>
                     <input type="time" value={cfg.to} onChange={e => setDays(p => ({ ...p, [k]: { ...p[k], to: e.target.value } }))}
-                      className="flex-1 min-w-0 border border-gray-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-300 bg-white" />
+                      className="flex-1 min-w-0 border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-800 dark:text-slate-100 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-300" />
                   </div>
                 )}
               </div>
@@ -511,18 +617,18 @@ export default function App() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-sm font-medium text-gray-700">🌙 Bei Dunkelheit fahren erlaubt</div>
-              <div className="text-xs text-gray-400 mt-0.5">Sonnenauf- und -untergang berücksichtigen</div>
+              <div className="text-sm font-medium text-gray-700 dark:text-slate-200">🌙 Bei Dunkelheit fahren erlaubt</div>
+              <div className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">Sonnenauf- und -untergang berücksichtigen</div>
             </div>
             <Toggle on={crit.allowDark} onChange={v => upd("allowDark", v)} />
           </div>
 
-          <div className="h-px bg-gray-100" />
+          <div className="h-px bg-gray-100 dark:bg-slate-700" />
 
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-sm font-medium text-gray-700">🌧️ Kein Regen</div>
-              <div className="text-xs text-gray-400 mt-0.5">Regenwahrscheinlichkeit als Ausschlusskriterium</div>
+              <div className="text-sm font-medium text-gray-700 dark:text-slate-200">🌧️ Kein Regen</div>
+              <div className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">Regenwahrscheinlichkeit als Ausschlusskriterium</div>
             </div>
             <Toggle on={crit.noRain} onChange={v => upd("noRain", v)} />
           </div>
@@ -530,21 +636,21 @@ export default function App() {
             <Slider label={`Max. Regenwahrscheinlichkeit: ${crit.maxRainProb}%`} min={5} max={80} step={5} value={crit.maxRainProb} onChange={v => upd("maxRainProb", v)} />
           )}
 
-          <div className="h-px bg-gray-100" />
+          <div className="h-px bg-gray-100 dark:bg-slate-700" />
 
           <div>
-            <div className="text-sm font-medium text-gray-700 mb-3">🌡️ Temperatur</div>
+            <div className="text-sm font-medium text-gray-700 dark:text-slate-200 mb-3">🌡️ Temperatur</div>
             <div className="space-y-3">
               <Slider label={`Mindesttemperatur: ${crit.minTemp}°C`} min={-5} max={20} step={1} value={crit.minTemp} onChange={v => upd("minTemp", v)} />
               <Slider label={`Maximaltemperatur: ${crit.maxTemp}°C`} min={20} max={45} step={1} value={crit.maxTemp} onChange={v => upd("maxTemp", v)} />
             </div>
           </div>
 
-          <div className="h-px bg-gray-100" />
+          <div className="h-px bg-gray-100 dark:bg-slate-700" />
 
           <Slider label={`💨 Max. Wind: ${crit.maxWind} km/h`} min={10} max={80} step={5} value={crit.maxWind} onChange={v => upd("maxWind", v)} />
 
-          <div className="h-px bg-gray-100" />
+          <div className="h-px bg-gray-100 dark:bg-slate-700" />
 
           <Slider label={`☀️ Max. UV-Index: ${crit.maxUV}`} min={3} max={11} step={1} value={crit.maxUV} onChange={v => upd("maxUV", v)} />
         </div>
@@ -560,14 +666,14 @@ export default function App() {
         </div>
       </Card>
 
-      {err && <div className="text-red-600 text-sm text-center mb-3 p-2.5 bg-red-50 rounded-xl border border-red-100">{err}</div>}
+      {err && <div className="text-red-600 dark:text-red-400 text-sm text-center mb-3 p-2.5 bg-red-50 dark:bg-red-900/30 rounded-xl border border-red-100 dark:border-red-800">{err}</div>}
 
       <button onClick={compute} disabled={loading}
-        className="w-full bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-blue-200 transition-all disabled:opacity-50 text-base mb-4">
+        className="w-full bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-blue-200 dark:shadow-blue-900/30 transition-all disabled:opacity-50 text-base mb-4">
         {loading ? "⏳ Wetterdaten werden geladen..." : "🔍 Trainingszeiten berechnen"}
       </button>
 
-      <p className="text-center text-xs text-gray-400 pb-6">Wetterdaten: open-meteo.com · Kostenlos, kein API-Key</p>
+      <p className="text-center text-xs text-gray-400 dark:text-slate-500 pb-6">Wetterdaten: open-meteo.com · Kostenlos, kein API-Key</p>
     </div>
   );
 }
