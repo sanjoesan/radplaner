@@ -102,11 +102,11 @@ function evalSlot({ hours, crit, sunriseH, sunsetH, startH, durH }: {
   const level: SlotResult["level"] = blocked.size > 0 ? "red" : "green";
 
   const rainScore = Math.max(1 - maxRain / 100, 0);
-  const tempIdeal = (crit.minTemp + crit.maxTemp) / 2;
-  const tempHalfRange = Math.max((crit.maxTemp - crit.minTemp) / 2, 1);
-  const tempScore = Math.max(1 - Math.abs(avgTemp - tempIdeal) / tempHalfRange, 0);
+  const tempFalloff = Math.max((crit.maxTemp - crit.minTemp) / 2, 1);
+  const tempMiss = avgTemp < crit.minTemp ? crit.minTemp - avgTemp : avgTemp > crit.maxTemp ? avgTemp - crit.maxTemp : 0;
+  const tempScore = Math.max(1 - tempMiss / tempFalloff, 0);
   const windScore = Math.max(1 - maxWind / Math.max(crit.maxWind * 2, 40), 0);
-  const uvScore = Math.max(1 - maxUV / 11, 0);
+  const uvScore = Math.max(1 - maxUV / Math.max(crit.maxUV * 2, 11), 0);
   const score = Math.round((rainScore * 0.4 + tempScore * 0.3 + windScore * 0.2 + uvScore * 0.1) * 100);
 
   return { level, score, issues: [...blocked], warnings: [...warns], stats: { avgTemp, maxWind, maxRain, maxUV } };
