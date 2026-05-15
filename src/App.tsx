@@ -61,6 +61,7 @@ interface SlotResult {
   score: number;
   issues: string[];
   warnings: string[];
+  tips: string[];
   stats: { avgTemp: number; maxWind: number; maxRain: number; maxUV: number };
 }
 
@@ -126,7 +127,19 @@ function evalSlot({ hours, crit, weights, sunriseH, sunsetH, startH, durH }: {
   const wsum = wr + wt + ww + wu || 1;
   const score = Math.round(((rainScore * wr + tempScore * wt + windScore * ww + uvScore * wu) / wsum) * 100);
 
-  return { level, score, issues: [...blocked], warnings: [...warns], stats: { avgTemp, maxWind, maxRain, maxUV } };
+  const tips: string[] = [];
+  if (avgTemp < 5) tips.push("🥶 Sehr warm anziehen (Handschuhe, Mütze)");
+  else if (avgTemp < 12) tips.push("🧥 Warm anziehen, Armlinge");
+  if (avgTemp > 28) tips.push("💧 Viel trinken, ggf. früher fahren");
+  else if (avgTemp > 24) tips.push("💧 Genug Wasser mitnehmen");
+  if (maxRain >= 30) tips.push("🧥 Regenjacke einpacken");
+  else if (maxRain >= 15) tips.push("☔ Regen möglich – Jacke griffbereit");
+  if (maxWind >= 30) tips.push("🌬️ Windjacke, mit Gegenwind rechnen");
+  else if (maxWind >= 20) tips.push("🌬️ Windjacke kann helfen");
+  if (maxUV >= 7) tips.push("🧴 Sonnencreme & Sonnenbrille");
+  else if (maxUV >= 5) tips.push("🧴 Sonnencreme nicht vergessen");
+
+  return { level, score, issues: [...blocked], warnings: [...warns], tips, stats: { avgTemp, maxWind, maxRain, maxUV } };
 }
 
 interface WeatherData {
@@ -270,6 +283,11 @@ function SlotCard({ s, dur }: { s: SlotResult; dur: number }) {
       {s.warnings.length > 0 && (
         <div className="mt-1.5 flex flex-wrap gap-1">
           {s.warnings.map((x, j) => <span key={j} className="text-xs bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded-md">⚠ {x}</span>)}
+        </div>
+      )}
+      {s.tips.length > 0 && (
+        <div className="mt-1.5 flex flex-wrap gap-1">
+          {s.tips.map((x, j) => <span key={j} className="text-xs bg-blue-50 text-blue-700 border border-blue-100 px-1.5 py-0.5 rounded-md">{x}</span>)}
         </div>
       )}
     </div>
