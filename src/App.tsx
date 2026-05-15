@@ -5,6 +5,7 @@ const WEATHER_URL = "https://api.open-meteo.com/v1/forecast";
 const DURATION_OPTS = [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4];
 
 const DEFAULT_LOC: Location = { name: "Garsten, Oberösterreich, Österreich", lat: 47.9939, lon: 14.3919 };
+const DETAIL_FROM_H = 6, DETAIL_TO_H = 20;
 
 type WeightLevel = "sehr_niedrig" | "niedrig" | "mittel" | "stark" | "sehr_stark";
 const WEIGHT_LEVELS: WeightLevel[] = ["sehr_niedrig", "niedrig", "mittel", "stark", "sehr_stark"];
@@ -179,8 +180,10 @@ function computeResults(data: WeatherData, days: Record<string, DayConfig>, durH
     const sunriseH = sun.sunrise ? parseHM(sun.sunrise) : null;
     const sunsetH = sun.sunset ? parseHM(sun.sunset) : null;
     const fromH = parseHM(cfg.from), toH = parseHM(cfg.to);
+    const scanFromH = Math.min(DETAIL_FROM_H, fromH);
+    const scanToH = Math.max(DETAIL_TO_H, toH);
     const allSlots: SlotResult[] = [];
-    for (let sH = fromH; sH + durH <= toH + 0.01; sH += 0.5) {
+    for (let sH = scanFromH; sH + durH <= scanToH + 0.01; sH += 0.5) {
       const hours: HourData[] = [];
       for (let dh = 0; dh < Math.ceil(durH); dh++) {
         const tk = `${dayKey}T${String(Math.floor(sH) + dh).padStart(2, "0")}:00`;
@@ -191,6 +194,7 @@ function computeResults(data: WeatherData, days: Record<string, DayConfig>, durH
       allSlots.push({ start: sH, ...ev });
     }
     allSlots.sort((a, b) => a.start - b.start);
+    const inWindow = allSlots.filter(s => s.start >= fromH - 0.01 && s.start + durH <= toH + 0.01);
     const kept: SlotResult[] = [];
     const tryAdd = (pool: SlotResult[]) => {
       for (const s of pool) {
@@ -198,9 +202,9 @@ function computeResults(data: WeatherData, days: Record<string, DayConfig>, durH
         if (!kept.some(ks => Math.abs(ks.start - s.start) < 1)) kept.push(s);
       }
     };
-    tryAdd(allSlots.filter(s => s.level === "green").sort((a, b) => b.score - a.score));
+    tryAdd(inWindow.filter(s => s.level === "green").sort((a, b) => b.score - a.score));
     if (kept.length < 3) {
-      tryAdd(allSlots.filter(s => s.level === "red").sort((a, b) => b.score - a.score));
+      tryAdd(inWindow.filter(s => s.level === "red").sort((a, b) => b.score - a.score));
     }
     kept.sort((a, b) => b.score - a.score);
     return { date: dayKey, from: cfg.from, to: cfg.to, sun: { sunrise: fmtSun(sun.sunrise), sunset: fmtSun(sun.sunset) }, slots: kept, allSlots };
