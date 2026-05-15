@@ -44,6 +44,7 @@ interface Suggestion {
 interface SlotResult {
   start: number;
   level: "green" | "red";
+  score: number;
   issues: string[];
   warnings: string[];
   stats: { avgTemp: number; maxWind: number; maxRain: number; maxUV: number };
@@ -99,7 +100,16 @@ function evalSlot({ hours, crit, sunriseH, sunsetH, startH, durH }: {
   if (crit.noRain && maxRain > crit.maxRainProb) blocked.add(`Regen ${maxRain}%`);
   if (maxUV > crit.maxUV) warns.add(`UV-Index ${maxUV.toFixed(0)}`);
   const level: SlotResult["level"] = blocked.size > 0 ? "red" : "green";
-  return { level, issues: [...blocked], warnings: [...warns], stats: { avgTemp, maxWind, maxRain, maxUV } };
+
+  const rainScore = Math.max(1 - maxRain / 100, 0);
+  const tempIdeal = (crit.minTemp + crit.maxTemp) / 2;
+  const tempHalfRange = Math.max((crit.maxTemp - crit.minTemp) / 2, 1);
+  const tempScore = Math.max(1 - Math.abs(avgTemp - tempIdeal) / tempHalfRange, 0);
+  const windScore = Math.max(1 - maxWind / Math.max(crit.maxWind * 2, 40), 0);
+  const uvScore = Math.max(1 - maxUV / 11, 0);
+  const score = Math.round((rainScore * 0.4 + tempScore * 0.3 + windScore * 0.2 + uvScore * 0.1) * 100);
+
+  return { level, score, issues: [...blocked], warnings: [...warns], stats: { avgTemp, maxWind, maxRain, maxUV } };
 }
 
 interface WeatherData {
@@ -155,12 +165,11 @@ function computeResults(data: WeatherData, days: Record<string, DayConfig>, durH
         if (!kept.some(ks => Math.abs(ks.start - s.start) < 1)) kept.push(s);
       }
     };
-    tryAdd(allSlots.filter(s => s.level === "green"));
+    tryAdd(allSlots.filter(s => s.level === "green").sort((a, b) => b.score - a.score));
     if (kept.length < 3) {
-      const reds = allSlots.filter(s => s.level === "red").sort((a, b) => a.issues.length - b.issues.length || a.start - b.start);
-      tryAdd(reds);
+      tryAdd(allSlots.filter(s => s.level === "red").sort((a, b) => b.score - a.score));
     }
-    kept.sort((a, b) => a.start - b.start);
+    kept.sort((a, b) => b.score - a.score);
     return { date: dayKey, from: cfg.from, to: cfg.to, sun: { sunrise: fmtSun(sun.sunrise), sunset: fmtSun(sun.sunset) }, slots: kept, allSlots };
   });
 }
@@ -209,7 +218,10 @@ function SlotCard({ s, dur }: { s: SlotResult; dur: number }) {
           <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${lv.dot}`} />
           <span className="font-bold text-gray-800">{fmtHour(s.start)} – {fmtHour(s.start + dur)} Uhr</span>
         </div>
-        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${lv.badge}`}>{lv.label}</span>
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-white/70 text-gray-700 border border-gray-200">{s.score}</span>
+          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${lv.badge}`}>{lv.label}</span>
+        </div>
       </div>
       <div className="grid grid-cols-4 gap-x-1 text-xs text-gray-600">
         <span>🌡️ {s.stats.avgTemp.toFixed(0)}°C</span>
