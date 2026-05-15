@@ -4,6 +4,13 @@ const GEO_URL = "https://geocoding-api.open-meteo.com/v1/search";
 const WEATHER_URL = "https://api.open-meteo.com/v1/forecast";
 const DURATION_OPTS = [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4];
 
+const DEFAULT_LOC: Location = { name: "Garsten, Oberösterreich, Österreich", lat: 47.9939, lon: 14.3919 };
+
+type WeightLevel = "sehr_niedrig" | "niedrig" | "mittel" | "stark" | "sehr_stark";
+const WEIGHT_LEVELS: WeightLevel[] = ["sehr_niedrig", "niedrig", "mittel", "stark", "sehr_stark"];
+const WEIGHT_VALUES: Record<WeightLevel, number> = { sehr_niedrig: 1, niedrig: 2, mittel: 3, stark: 4, sehr_stark: 5 };
+const WEIGHT_LABELS: Record<WeightLevel, string> = { sehr_niedrig: "Sehr niedrig", niedrig: "Niedrig", mittel: "Mittel", stark: "Stark", sehr_stark: "Sehr stark" };
+
 interface HourData {
   temp: number;
   rain: number;
@@ -19,6 +26,13 @@ interface Criteria {
   maxWind: number;
   maxUV: number;
   allowDark: boolean;
+}
+
+interface Weights {
+  rain: WeightLevel;
+  temp: WeightLevel;
+  wind: WeightLevel;
+  uv: WeightLevel;
 }
 
 interface DayConfig {
@@ -77,9 +91,10 @@ function fmtSun(iso: string | undefined): string {
   return t.substring(0, 5);
 }
 
-function evalSlot({ hours, crit, sunriseH, sunsetH, startH, durH }: {
+function evalSlot({ hours, crit, weights, sunriseH, sunsetH, startH, durH }: {
   hours: HourData[];
   crit: Criteria;
+  weights: Weights;
   sunriseH: number | null;
   sunsetH: number | null;
   startH: number;
@@ -107,7 +122,9 @@ function evalSlot({ hours, crit, sunriseH, sunsetH, startH, durH }: {
   const tempScore = Math.max(1 - tempMiss / tempFalloff, 0);
   const windScore = Math.max(1 - maxWind / Math.max(crit.maxWind * 2, 40), 0);
   const uvScore = Math.max(1 - maxUV / Math.max(crit.maxUV * 2, 11), 0);
-  const score = Math.round((rainScore * 0.4 + tempScore * 0.3 + windScore * 0.2 + uvScore * 0.1) * 100);
+  const wr = WEIGHT_VALUES[weights.rain], wt = WEIGHT_VALUES[weights.temp], ww = WEIGHT_VALUES[weights.wind], wu = WEIGHT_VALUES[weights.uv];
+  const wsum = wr + wt + ww + wu || 1;
+  const score = Math.round(((rainScore * wr + tempScore * wt + windScore * ww + uvScore * wu) / wsum) * 100);
 
   return { level, score, issues: [...blocked], warnings: [...warns], stats: { avgTemp, maxWind, maxRain, maxUV } };
 }
@@ -127,7 +144,7 @@ interface WeatherData {
   };
 }
 
-function computeResults(data: WeatherData, days: Record<string, DayConfig>, durH: number, crit: Criteria): DayResult[] {
+function computeResults(data: WeatherData, days: Record<string, DayConfig>, durH: number, crit: Criteria, weights: Weights): DayResult[] {
   const { hourly, daily } = data;
   const byHour: Record<string, HourData> = {};
   hourly.time.forEach((t, i) => {
@@ -154,7 +171,7 @@ function computeResults(data: WeatherData, days: Record<string, DayConfig>, durH
         if (byHour[tk]) hours.push(byHour[tk]);
       }
       if (!hours.length) continue;
-      const ev = evalSlot({ hours, crit, sunriseH, sunsetH, startH: sH, durH });
+      const ev = evalSlot({ hours, crit, weights, sunriseH, sunsetH, startH: sH, durH });
       allSlots.push({ start: sH, ...ev });
     }
     allSlots.sort((a, b) => a.start - b.start);
@@ -209,6 +226,22 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   return <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">{children}</h2>;
 }
 
+function WeightSelector({ label, value, onChange }: { label: string; value: WeightLevel; onChange: (v: WeightLevel) => void }) {
+  return (
+    <div>
+      <div className="text-sm font-medium text-gray-700 mb-1.5">{label}</div>
+      <div className="flex gap-1">
+        {WEIGHT_LEVELS.map(lv => (
+          <button key={lv} onClick={() => onChange(lv)}
+            className={`flex-1 px-1 py-1.5 rounded-lg text-[11px] font-medium transition-all border ${value === lv ? "bg-blue-500 text-white border-blue-500 shadow-sm" : "bg-white text-gray-500 border-gray-200 hover:border-blue-300"}`}>
+            {WEIGHT_LABELS[lv]}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function SlotCard({ s, dur }: { s: SlotResult; dur: number }) {
   const lv = LVLS[s.level];
   return (
@@ -244,11 +277,12 @@ function SlotCard({ s, dur }: { s: SlotResult; dur: number }) {
 }
 
 export default function App() {
-  const [loc, setLoc] = useState<Location | null>(null);
-  const [locQ, setLocQ] = useState("");
+  const [loc, setLoc] = useState<Location | null>(DEFAULT_LOC);
+  const [locQ, setLocQ] = useState(DEFAULT_LOC.name);
   const [sugg, setSugg] = useState<Suggestion[]>([]);
   const [dur, setDur] = useState(1.5);
   const [crit, setCrit] = useState<Criteria>({ noRain: true, maxRainProb: 20, minTemp: 15, maxTemp: 30, maxWind: 20, maxUV: 9, allowDark: false });
+  const [weights, setWeights] = useState<Weights>({ rain: "sehr_stark", temp: "stark", wind: "mittel", uv: "sehr_niedrig" });
   const [days, setDays] = useState<Record<string, DayConfig>>(() => {
     const obj: Record<string, DayConfig> = {};
     for (let i = 0; i < 7; i++) {
@@ -303,7 +337,7 @@ export default function App() {
       const r = await fetch(`${WEATHER_URL}?${params}`);
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const weatherData: WeatherData = await r.json();
-      setResults(computeResults(weatherData, days, dur, crit));
+      setResults(computeResults(weatherData, days, dur, crit, weights));
     } catch (e) {
       setErr(`Fehler: ${e instanceof Error ? e.message : "Unbekannter Fehler"}`);
     }
@@ -488,6 +522,16 @@ export default function App() {
           <div className="h-px bg-gray-100" />
 
           <Slider label={`☀️ Max. UV-Index: ${crit.maxUV}`} min={3} max={11} step={1} value={crit.maxUV} onChange={v => upd("maxUV", v)} />
+        </div>
+      </Card>
+
+      <Card className="mb-4">
+        <SectionTitle>⚖️ Gewichtung für Score</SectionTitle>
+        <div className="space-y-3">
+          <WeightSelector label="🌧️ Regen" value={weights.rain} onChange={v => setWeights(w => ({ ...w, rain: v }))} />
+          <WeightSelector label="🌡️ Temperatur" value={weights.temp} onChange={v => setWeights(w => ({ ...w, temp: v }))} />
+          <WeightSelector label="💨 Wind" value={weights.wind} onChange={v => setWeights(w => ({ ...w, wind: v }))} />
+          <WeightSelector label="☀️ UV-Index" value={weights.uv} onChange={v => setWeights(w => ({ ...w, uv: v }))} />
         </div>
       </Card>
 
