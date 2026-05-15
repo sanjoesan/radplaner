@@ -263,87 +263,111 @@ function WeightSelector({ label, value, onChange }: { label: string; value: Weig
 }
 
 function PixelCyclist() {
-  const dark = "#0f172a";
-  const tire = "#1e293b";
+  const tire = "#64748b";
   const spoke = "#cbd5e1";
+  const hub = "#1e293b";
   const frame = "#facc15";
-  const jersey = "#dc2626";
-  const jerseyDark = "#991b1b";
+  const frameDark = "#ca8a04";
+  const jersey = "#ef4444";
+  const jerseyDark = "#b91c1c";
   const skin = "#fcd5b5";
-  const helmet = "#1e3a8a";
-  const helmetLite = "#2563eb";
-  const shorts = "#0f172a";
-  const bar = "#475569";
+  const helmet = "#2563eb";
+  const helmetDark = "#1e40af";
+  const shorts = "#334155";
+  const shoe = "#0f172a";
+  const bar = "#94a3b8";
   return (
-    <svg viewBox="0 0 32 20" shapeRendering="crispEdges" className="mx-auto w-48 h-auto block drop-shadow-md" xmlns="http://www.w3.org/2000/svg">
-      {/* helmet */}
-      <rect x="17" y="2" width="6" height="1" fill={helmet} />
-      <rect x="16" y="3" width="8" height="1" fill={helmet} />
-      <rect x="16" y="4" width="8" height="1" fill={helmetLite} />
-      <rect x="15" y="4" width="1" height="1" fill={helmet} />
-      {/* face */}
-      <rect x="17" y="5" width="6" height="1" fill={skin} />
-      <rect x="22" y="6" width="2" height="1" fill={skin} />
-      {/* jersey upper back */}
-      <rect x="11" y="6" width="11" height="1" fill={jersey} />
-      <rect x="10" y="7" width="13" height="1" fill={jersey} />
-      <rect x="9" y="8" width="14" height="1" fill={jersey} />
-      <rect x="9" y="9" width="14" height="1" fill={jerseyDark} />
-      <rect x="22" y="8" width="1" height="2" fill={jerseyDark} />
-      {/* arm reaching forward to bars */}
-      <rect x="8" y="9" width="1" height="1" fill={jersey} />
-      <rect x="6" y="10" width="3" height="1" fill={skin} />
-      <rect x="4" y="11" width="3" height="1" fill={skin} />
-      {/* shorts */}
-      <rect x="16" y="10" width="7" height="1" fill={shorts} />
-      <rect x="17" y="11" width="6" height="1" fill={shorts} />
-      {/* leg back (pedaling, up) */}
-      <rect x="18" y="12" width="2" height="2" fill={shorts} />
-      <rect x="18" y="14" width="2" height="1" fill={skin} />
-      <rect x="17" y="15" width="3" height="1" fill={dark} />
-      {/* leg front (pedaling, down) */}
-      <rect x="20" y="12" width="2" height="3" fill={shorts} />
-      <rect x="20" y="15" width="2" height="1" fill={skin} />
-      <rect x="19" y="16" width="3" height="1" fill={dark} />
-      {/* bike: top tube */}
-      <rect x="8" y="12" width="13" height="1" fill={frame} />
-      {/* down tube */}
-      <rect x="7" y="13" width="2" height="1" fill={frame} />
-      <rect x="6" y="14" width="2" height="1" fill={frame} />
-      {/* seat tube + saddle */}
-      <rect x="21" y="11" width="3" height="1" fill={bar} />
-      <rect x="22" y="12" width="1" height="3" fill={frame} />
+    <svg viewBox="0 0 36 24" shapeRendering="crispEdges" className="mx-auto w-52 h-auto block drop-shadow-md" xmlns="http://www.w3.org/2000/svg">
+      {/* === FRAME (drawn first, under rider) === */}
+      {/* top tube */}
+      <rect x="11" y="13" width="17" height="1" fill={frame} />
+      {/* down tube (handlebars → bottom bracket) */}
+      <rect x="9"  y="14" width="1" height="1" fill={frame} />
+      <rect x="10" y="15" width="1" height="1" fill={frame} />
+      <rect x="11" y="16" width="2" height="1" fill={frame} />
+      <rect x="13" y="17" width="2" height="1" fill={frame} />
+      <rect x="15" y="18" width="2" height="1" fill={frame} />
+      {/* chain stay → rear hub */}
+      <rect x="17" y="18" width="11" height="1" fill={frame} />
+      {/* seat tube */}
+      <rect x="27" y="14" width="1" height="4" fill={frame} />
+      <rect x="28" y="14" width="1" height="4" fill={frameDark} />
       {/* fork */}
-      <rect x="4" y="12" width="1" height="4" fill={frame} />
-      {/* handlebars */}
-      <rect x="3" y="10" width="2" height="1" fill={bar} />
-      <rect x="3" y="11" width="1" height="2" fill={bar} />
-      {/* front wheel */}
-      <rect x="2" y="15" width="5" height="1" fill={tire} />
-      <rect x="1" y="16" width="7" height="1" fill={tire} />
-      <rect x="0" y="17" width="1" height="2" fill={tire} />
-      <rect x="8" y="17" width="1" height="2" fill={tire} />
-      <rect x="1" y="18" width="1" height="1" fill={tire} />
-      <rect x="7" y="18" width="1" height="1" fill={tire} />
-      <rect x="1" y="19" width="7" height="1" fill={tire} />
-      {/* front spokes / hub */}
-      <rect x="4" y="16" width="1" height="3" fill={spoke} />
-      <rect x="2" y="17" width="5" height="1" fill={spoke} opacity="0.4" />
-      <rect x="4" y="17" width="1" height="1" fill={dark} />
-      {/* rear wheel */}
-      <rect x="20" y="15" width="5" height="1" fill={tire} />
-      <rect x="19" y="16" width="7" height="1" fill={tire} />
-      <rect x="18" y="17" width="1" height="2" fill={tire} />
-      <rect x="26" y="17" width="1" height="2" fill={tire} />
-      <rect x="19" y="18" width="1" height="1" fill={tire} />
-      <rect x="25" y="18" width="1" height="1" fill={tire} />
-      <rect x="19" y="19" width="7" height="1" fill={tire} />
-      {/* rear spokes / hub */}
-      <rect x="22" y="16" width="1" height="3" fill={spoke} />
-      <rect x="20" y="17" width="5" height="1" fill={spoke} opacity="0.4" />
-      <rect x="22" y="17" width="1" height="1" fill={dark} />
-      {/* chain */}
-      <rect x="9" y="15" width="9" height="1" fill={dark} opacity="0.6" />
+      <rect x="7"  y="14" width="1" height="5" fill={frame} />
+      <rect x="6"  y="14" width="1" height="5" fill={frameDark} />
+      {/* handlebars + stem */}
+      <rect x="5"  y="12" width="3" height="1" fill={bar} />
+      <rect x="7"  y="13" width="1" height="2" fill={bar} />
+      <rect x="5"  y="13" width="1" height="3" fill={bar} />
+      {/* saddle */}
+      <rect x="26" y="12" width="4" height="1" fill={hub} />
+      <rect x="27" y="13" width="2" height="1" fill={hub} />
+
+      {/* === RIDER === */}
+      {/* helmet */}
+      <rect x="22" y="3" width="6" height="1" fill={helmetDark} />
+      <rect x="21" y="4" width="8" height="1" fill={helmet} />
+      <rect x="21" y="5" width="8" height="1" fill={helmet} />
+      <rect x="20" y="5" width="1" height="1" fill={helmetDark} />
+      {/* face */}
+      <rect x="22" y="6" width="6" height="1" fill={skin} />
+      <rect x="27" y="7" width="2" height="1" fill={skin} />
+      {/* neck */}
+      <rect x="24" y="7" width="2" height="1" fill={skin} />
+      {/* torso bent forward */}
+      <rect x="14" y="8" width="13" height="1" fill={jersey} />
+      <rect x="12" y="9" width="15" height="1" fill={jersey} />
+      <rect x="11" y="10" width="16" height="1" fill={jersey} />
+      <rect x="11" y="11" width="16" height="1" fill={jerseyDark} />
+      {/* arm reaching forward & down to bars */}
+      <rect x="10" y="10" width="1" height="1" fill={skin} />
+      <rect x="9"  y="11" width="2" height="1" fill={skin} />
+      <rect x="8"  y="12" width="2" height="1" fill={skin} />
+      <rect x="7"  y="11" width="1" height="2" fill={skin} />
+      {/* shorts */}
+      <rect x="22" y="12" width="6" height="2" fill={shorts} />
+      <rect x="23" y="14" width="5" height="1" fill={shorts} />
+      {/* back leg (extended, pedal down) */}
+      <rect x="25" y="15" width="2" height="3" fill={shorts} />
+      <rect x="25" y="18" width="2" height="1" fill={skin} />
+      <rect x="24" y="19" width="4" height="1" fill={shoe} />
+      {/* front leg (raised) */}
+      <rect x="21" y="15" width="2" height="2" fill={shorts} />
+      <rect x="20" y="17" width="3" height="1" fill={shorts} />
+      <rect x="19" y="18" width="2" height="1" fill={skin} />
+      <rect x="17" y="19" width="4" height="1" fill={shoe} />
+
+      {/* === FRONT WHEEL === */}
+      <rect x="3"  y="16" width="3" height="1" fill={tire} />
+      <rect x="8"  y="16" width="3" height="1" fill={tire} />
+      <rect x="2"  y="17" width="2" height="1" fill={tire} />
+      <rect x="10" y="17" width="2" height="1" fill={tire} />
+      <rect x="1"  y="18" width="1" height="2" fill={tire} />
+      <rect x="12" y="18" width="1" height="2" fill={tire} />
+      <rect x="2"  y="20" width="2" height="1" fill={tire} />
+      <rect x="10" y="20" width="2" height="1" fill={tire} />
+      <rect x="3"  y="21" width="3" height="1" fill={tire} />
+      <rect x="8"  y="21" width="3" height="1" fill={tire} />
+      {/* spokes */}
+      <rect x="2"  y="19" width="10" height="1" fill={spoke} />
+      <rect x="6"  y="17" width="2" height="5" fill={spoke} />
+      <rect x="6"  y="19" width="2" height="1" fill={hub} />
+
+      {/* === REAR WHEEL === */}
+      <rect x="21" y="16" width="3" height="1" fill={tire} />
+      <rect x="26" y="16" width="3" height="1" fill={tire} />
+      <rect x="20" y="17" width="2" height="1" fill={tire} />
+      <rect x="28" y="17" width="2" height="1" fill={tire} />
+      <rect x="19" y="18" width="1" height="2" fill={tire} />
+      <rect x="30" y="18" width="1" height="2" fill={tire} />
+      <rect x="20" y="20" width="2" height="1" fill={tire} />
+      <rect x="28" y="20" width="2" height="1" fill={tire} />
+      <rect x="21" y="21" width="3" height="1" fill={tire} />
+      <rect x="26" y="21" width="3" height="1" fill={tire} />
+      {/* spokes */}
+      <rect x="20" y="19" width="10" height="1" fill={spoke} />
+      <rect x="24" y="17" width="2" height="5" fill={spoke} />
+      <rect x="24" y="19" width="2" height="1" fill={hub} />
     </svg>
   );
 }
