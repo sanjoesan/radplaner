@@ -8,7 +8,7 @@ const DEFAULT_LOC: Location = { name: "Garsten, Oberösterreich, Österreich", l
 
 type WeightLevel = "sehr_niedrig" | "niedrig" | "mittel" | "stark" | "sehr_stark";
 const WEIGHT_LEVELS: WeightLevel[] = ["sehr_niedrig", "niedrig", "mittel", "stark", "sehr_stark"];
-const WEIGHT_VALUES: Record<WeightLevel, number> = { sehr_niedrig: 1, niedrig: 2, mittel: 3, stark: 4, sehr_stark: 5 };
+const WEIGHT_VALUES: Record<WeightLevel, number> = { sehr_niedrig: 1, niedrig: 2, mittel: 4, stark: 8, sehr_stark: 16 };
 const WEIGHT_LABELS: Record<WeightLevel, string> = { sehr_niedrig: "Sehr niedrig", niedrig: "Niedrig", mittel: "Mittel", stark: "Stark", sehr_stark: "Sehr stark" };
 
 interface HourData {
