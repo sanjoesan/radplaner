@@ -128,8 +128,11 @@ function evalSlot({ hours, crit, weights, sunriseH, sunsetH, startH, durH }: {
   const score = Math.round(((rainScore * wr + tempScore * wt + windScore * ww + uvScore * wu) / wsum) * 100);
 
   const tips: string[] = [];
-  if (avgTemp < 5) tips.push("🥶 Sehr warm anziehen (Handschuhe, Mütze)");
-  else if (avgTemp < 12) tips.push("🧥 Warm anziehen, Armlinge");
+  const cold: string[] = [];
+  if (avgTemp < 18) cold.push("Schlauchschal");
+  if (avgTemp < 15) cold.push("Mütze");
+  if (avgTemp < 11) cold.push("Handschuhe");
+  if (cold.length) tips.push(`🧣 ${cold.join(", ")}`);
   if (avgTemp > 28) tips.push("💧 Viel trinken, ggf. früher fahren");
   else if (avgTemp > 24) tips.push("💧 Genug Wasser mitnehmen");
   if (maxRain >= 30) tips.push("🧥 Regenjacke einpacken");
